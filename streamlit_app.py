@@ -46,7 +46,7 @@ def models(X_train,Y_train):
   print('[0]Genetic Fuzzy System Accuracy:', log.score(X_train, Y_train))
   print('[1]Neural Network Accuracy:', knn.score(X_train, Y_train))
 
-return log, knn
+  return log, knn
 
 model = models(X_train,Y_train)
 
