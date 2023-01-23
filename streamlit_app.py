@@ -1,84 +1,89 @@
-#import libraries 
-import numpy as np 
-import pandas as pd 
+import streamlit as st
+import numpy as np
+import pandas as pd
+import pickle
 
+from PIL import Image
+from sklearn import datasets
 
-df = pd.read_csv('data.csv') 
-df.shape
-df.isna().sum()
-df = df.dropna(axis=1)
-df.shape
-df['diagnosis'].value_counts()
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
-from sklearn.preprocessing import LabelEncoder
-labelencoder_Y = LabelEncoder()
-df.iloc[:,1]= labelencoder_Y.fit_transform(df.iloc[:,1].values)
-print(labelencoder_Y.fit_transform(df.iloc[:,1].values))
-
-df.head(5)
-
-X = df.iloc[:, 2:31].values 
-Y = df.iloc[:, 1].values
-
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_predict
 from sklearn.model_selection import train_test_split
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25, random_state = 0)
-
-#Feature Scaling
-from sklearn.preprocessing import StandardScaler
-sc = StandardScaler()
-X_train = sc.fit_transform(X_train)
-X_test = sc.transform(X_test)
-
-def models(X_train,Y_train):
-  
-  #Using Logistic Regression 
-  from sklearn.linear_model import LogisticRegression
-  log = LogisticRegression(random_state = 0)
-  log.fit(X_train, Y_train)
-  
-  #Using KNeighborsClassifier 
-  from sklearn.neighbors import KNeighborsClassifier
-  knn = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
-  knn.fit(X_train, Y_train)
-    
-  #print model accuracy on the training data.
-  print('[0]Genetic Fuzzy System Accuracy:', log.score(X_train, Y_train))
-  print('[1]Neural Network Accuracy:', knn.score(X_train, Y_train))
-
-  return log, knn
-
-model = models(X_train,Y_train)
-
-from sklearn.metrics import confusion_matrix
-for i in range(len(model)):
-  cm = confusion_matrix(Y_test, model[i].predict(X_test))
-  
-  TN = cm[0][0]
-  TP = cm[1][1]
-  FN = cm[1][0]
-  FP = cm[0][1]
-  
-  print(cm)
-  print('Model[{}] Testing Accuracy = "{}!"'.format(i,  (TP + TN) / (TP + TN + FN + FP)))
-  print()
-    
-  from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 
-for i in range(len(model)):
-  print('Model ',i)
-  #Check precision, recall, f1-score
-  print( classification_report(Y_test, model[i].predict(X_test)) )
-  #Another way to get the models accuracy on the test data
-  print( accuracy_score(Y_test, model[i].predict(X_test)))
-  print()#Print a new line
+st.set_option('deprecation.showfileUploaderEncoding', False)
+
+img = Image.open('iuli_logo.png')
+st.set_page_config(page_title = "Thesis Sample", page_icon = img)
+
+st.title('Comparison of Algorithm Performance in Breast Cancer Detection')
+st.markdown("""
+            This app is the result of the implementation of the Breast Cancer which aims to find out the comparison of the results 
+            of the accuracy of 3 classification algorithms with dataset. 
+            """)
+
+heart_data = pd.read_csv('heartdisease1.csv')
+heartdisease = heart_data.drop(columns = ['target'])
+df = pd.concat([heartdisease], axis = 0)
+
+X = heart_data.drop(columns = ['target'])
+y = heart_data['target']
+
+st.subheader('Dataset')
+st.markdown("""
+            The data used is taken from the Kaggle website with a CSV file type consisting of a total of 1025 pieces of data. 
+            The total data of 496 patients had coronary heart disease and 529 patients did not have coronary heart disease. 
+            This data was taken in 1988 from a hospital and consists of four databases namely Cleveland, Hungary, Switzerland, and Long Beach V.
+            """)
+st.write(df)
+
+st.subheader('Exploratory Data Analysis')
+st.write('Shape of the data is ', X.shape)
+
+st.sidebar.header('Model Selection')
+algorithm = st.sidebar.selectbox('Select the algorithm model.', ('GA', 
+                                                          'FL',
+                                                          'NN'))
     
-#Print Prediction of Random Forest Classifier model
-pred = model[6].predict(X_test)
-print(pred)
+def newparam(choose_algorithm):
+    params = dict()
+    if choose_algorithm == 'FL':
+        max_depthCART = st.sidebar.slider('max_depth', 2, 15)
+        params['max_depthCART'] = max_depthCART
+        
+    elif choose_algorithm == 'NN':
+        n_estimators = st.sidebar.slider('n_estimators', 1, 100)
+        params['n_estimators'] = n_estimators
+        max_depthRF = st.sidebar.slider('max_depth', 2, 15)
+        params['max_depthRF'] = max_depthRF
+        
+    return params
 
-#Print a space
-print()
+params = newparam(algorithm)
+            
+def classification(choose_algorithm, params):
+    algo = None
+    if choose_algorithm == 'GA':
+        algo = GaussianNB()
+    elif choose_algorithm == 'FL':
+        algo = DecisionTreeClassifier(max_depth = params['max_depthCART'],
+                                      random_state = 0)
+    else:
+        algo = RandomForestClassifier(n_estimators = params['n_estimators'],
+                                      max_depth = params['max_depthRF'],
+                                      random_state = 0)
+    return algo
 
-#Print the actual values
-print(Y_test)
+algo = classification(algorithm, params)
+
+score = cross_val_score(algo, X, y, cv = 10)
+
+st.subheader('Results')
+st.write(f'Algorithm: {algorithm}')
+st.write('Accuracy: ', round(score.mean()*100,2), '%')
+st.write('Standard Deviation: ', round(score.std()*100,2), '%')
