@@ -27,7 +27,7 @@ st.markdown("""
             of the accuracy of 3 classification algorithms with dataset. 
             """)
 
-heart_data = pd.read_csv('data.csv')
+heart_data = pd.read_csv('heart.csv')
 heartdisease = heart_data.drop(columns = ['target'])
 df = pd.concat([heartdisease], axis = 0)
 
