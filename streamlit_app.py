@@ -36,9 +36,7 @@ y = heart_data['target']
 
 st.subheader('Dataset')
 st.markdown("""
-            The data used is taken from the Kaggle website with a CSV file type consisting of a total of 1025 pieces of data. 
-            The total data of 496 patients had coronary heart disease and 529 patients did not have coronary heart disease. 
-            This data was taken in 1988 from a hospital and consists of four databases namely Cleveland, Hungary, Switzerland, and Long Beach V.
+            The data used is taken from the Kaggle website with a CSV file type.
             """)
 st.write(df)
 
